@@ -1,0 +1,42 @@
+package com.kitsunetech.sweep.data.system
+
+import android.annotation.SuppressLint
+import android.app.AppOpsManager
+import android.content.Context
+import android.os.Build
+import android.os.Environment
+import android.os.Process
+
+data class PermissionState(
+    val allFilesAccess: Boolean,
+    val usageAccess: Boolean,
+)
+
+class PermissionStateReader(
+    context: Context,
+) {
+    private val applicationContext = context.applicationContext
+    private val appOpsManager = applicationContext.getSystemService(AppOpsManager::class.java)
+
+    fun read(): PermissionState = PermissionState(
+        allFilesAccess = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+            Environment.isExternalStorageManager(),
+        usageAccess = usageMode() == AppOpsManager.MODE_ALLOWED,
+    )
+
+    @SuppressLint("WrongConstant")
+    @Suppress("DEPRECATION")
+    private fun usageMode(): Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        appOpsManager.unsafeCheckOpNoThrow(
+            AppOpsManager.OPSTR_GET_USAGE_STATS,
+            Process.myUid(),
+            applicationContext.packageName,
+        )
+    } else {
+        appOpsManager.checkOpNoThrow(
+            AppOpsManager.OPSTR_GET_USAGE_STATS,
+            Process.myUid(),
+            applicationContext.packageName,
+        )
+    }
+}

@@ -61,4 +61,3 @@ data class SweepUiState(
     val duplicates: DuplicatesState = DuplicatesState(),
     val apps: AppsState = AppsState(),
 )
-

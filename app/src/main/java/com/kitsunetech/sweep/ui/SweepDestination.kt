@@ -12,4 +12,3 @@ enum class AppSort {
     CACHE,
     OLDEST_USE,
 }
-

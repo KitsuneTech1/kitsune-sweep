@@ -15,6 +15,7 @@ import com.kitsunetech.sweep.data.storage.DirectStorageScanner
 import com.kitsunetech.sweep.data.storage.FileDeletionCoordinator
 import com.kitsunetech.sweep.data.storage.MediaStoreScanner
 import com.kitsunetech.sweep.data.system.PermissionStateReader
+import com.kitsunetech.sweep.domain.FileSafetyPolicy
 import com.kitsunetech.sweep.domain.DuplicateDetector
 import com.kitsunetech.sweep.domain.Sha256ContentHasher
 import com.kitsunetech.sweep.ui.StorageSummary
@@ -32,7 +33,17 @@ class SweepDependencies(context: Context) {
         storageFactsSource = AndroidStorageFactsSource(applicationContext),
     )
 
-    val deletionCoordinator = FileDeletionCoordinator(applicationContext, sharedRoots)
+    val deletionCoordinator = FileDeletionCoordinator(
+        context = applicationContext,
+        roots = sharedRoots,
+        safetyPolicy = FileSafetyPolicy(
+            protectedRoots = setOf(
+                applicationContext.filesDir.toPath(),
+                applicationContext.cacheDir.toPath(),
+                applicationContext.dataDir.toPath(),
+            ),
+        ),
+    )
 
     val viewModelFactory = object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")

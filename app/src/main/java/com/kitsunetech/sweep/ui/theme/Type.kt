@@ -42,3 +42,11 @@ val PathStyle = TextStyle(
     fontSize = 12.sp,
     lineHeight = 17.sp,
 )
+
+val ByteValueStyle = TextStyle(
+    fontFamily = FontFamily.SansSerif,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 16.sp,
+    lineHeight = 20.sp,
+    letterSpacing = (-0.5).sp,
+)

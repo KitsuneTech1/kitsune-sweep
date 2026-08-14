@@ -28,6 +28,7 @@ import com.kitsunetech.sweep.domain.toReadableBytes
 import com.kitsunetech.sweep.ui.DuplicatesState
 import com.kitsunetech.sweep.ui.components.ScanStatus
 import com.kitsunetech.sweep.ui.theme.PathStyle
+import com.kitsunetech.sweep.ui.theme.ByteValueStyle
 
 @Composable
 fun DuplicatesScreen(
@@ -94,10 +95,11 @@ private fun DuplicateGroupCard(
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                "${group.files.size} copies, up to ${group.reclaimableBytes.toReadableBytes()} reclaimable",
-                style = MaterialTheme.typography.titleSmall,
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("${group.files.size} copies, up to", style = MaterialTheme.typography.titleSmall)
+                Text(group.reclaimableBytes.toReadableBytes(), style = ByteValueStyle)
+                Text("reclaimable", style = MaterialTheme.typography.titleSmall)
+            }
             group.files.forEach { file ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(
@@ -113,7 +115,7 @@ private fun DuplicateGroupCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Text(file.sizeBytes.toReadableBytes())
+                    Text(file.sizeBytes.toReadableBytes(), style = ByteValueStyle)
                 }
             }
         }

@@ -25,6 +25,7 @@ import com.kitsunetech.sweep.domain.toReadableBytes
 import com.kitsunetech.sweep.ui.AppSort
 import com.kitsunetech.sweep.ui.AppsState
 import com.kitsunetech.sweep.ui.components.ScanStatus
+import com.kitsunetech.sweep.ui.theme.ByteValueStyle
 import java.text.DateFormat
 import java.util.Date
 
@@ -106,9 +107,12 @@ private fun AppCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Text(app.totalBytes?.toReadableBytes() ?: "Size unavailable")
+                Text(app.totalBytes?.toReadableBytes() ?: "Size unavailable", style = ByteValueStyle)
             }
-            Text("Cache ${app.cacheBytes?.toReadableBytes() ?: "unavailable"}")
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Cache")
+                Text(app.cacheBytes?.toReadableBytes() ?: "unavailable", style = ByteValueStyle)
+            }
             Text(lastUsedText(app.lastUsedAtMillis))
             if (app.isCold) Text("Not used in at least 90 days", color = MaterialTheme.colorScheme.secondary)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

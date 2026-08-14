@@ -115,15 +115,24 @@ class SweepAppTest {
         }
 
         val rootBounds = composeRule.onRoot().fetchSemanticsNode().boundsInRoot
-        val thresholdBounds = composeRule.onNodeWithTag("threshold-1 GB").fetchSemanticsNode().boundsInRoot
-        assertTrue("1 GB threshold must fit inside the viewport", thresholdBounds.right <= rootBounds.right)
+        listOf("50 MB", "100 MB", "250 MB", "500 MB", "1 GB").forEach { label ->
+            val chipBounds = composeRule.onNodeWithTag("threshold-$label").fetchSemanticsNode().boundsInRoot
+            val labelBounds = composeRule.onNodeWithTag(
+                "threshold-label-$label",
+                useUnmergedTree = true,
+            ).fetchSemanticsNode().boundsInRoot
+            assertTrue("$label threshold must fit inside the viewport", chipBounds.right <= rootBounds.right)
+            assertTrue("$label text must fit inside its chip", labelBounds.left >= chipBounds.left && labelBounds.right <= chipBounds.right)
+        }
 
         val duplicatesBounds = composeRule.onNodeWithTag(
             "navigation-duplicates",
             useUnmergedTree = true,
         ).fetchSemanticsNode().boundsInRoot
         val maximumLabelHeight = with(composeRule.density) { 28.dp.toPx() }
+        val minimumLabelHeight = with(composeRule.density) { 24.dp.toPx() }
         assertTrue("Duplicates label must stay on one line", duplicatesBounds.height <= maximumLabelHeight)
+        assertTrue("Duplicates label must respect 200 percent text scaling", duplicatesBounds.height >= minimumLabelHeight)
     }
 
     private fun statefulActions(

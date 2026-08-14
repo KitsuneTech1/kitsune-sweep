@@ -1,5 +1,9 @@
 package com.kitsunetech.sweep.ui
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -18,7 +22,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.TextStyle
 import com.kitsunetech.sweep.domain.DeletePlan
 import com.kitsunetech.sweep.domain.toReadableBytes
 import com.kitsunetech.sweep.ui.screens.AppsScreen
@@ -61,38 +65,31 @@ fun SweepApp(
         modifier = modifier,
         bottomBar = {
             NavigationBar {
-                NAV_ITEMS.forEach { item ->
-                    NavigationBarItem(
-                        selected = state.destination == item.destination,
-                        onClick = { actions.onNavigate(item.destination) },
-                        icon = {
-                            Text(
-                                item.marker,
-                                style = if (largeText) {
-                                    MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, lineHeight = 12.sp)
-                                } else {
-                                    MaterialTheme.typography.bodyMedium
-                                },
-                                modifier = Modifier.semantics {
-                                    contentDescription = "${item.label} section"
-                                },
-                            )
-                        },
-                        label = {
-                            Text(
-                                item.label,
-                                maxLines = 1,
-                                softWrap = false,
-                                style = if (largeText) {
-                                    MaterialTheme.typography.labelSmall.copy(fontSize = 5.sp, lineHeight = 6.sp)
-                                } else {
-                                    MaterialTheme.typography.labelMedium
-                                },
-                                modifier = Modifier.testTag("navigation-${item.destination.name.lowercase()}"),
-                            )
-                        },
-                        alwaysShowLabel = true,
-                    )
+                if (largeText) {
+                    Column {
+                        NAV_ITEMS.chunked(2).forEach { rowItems ->
+                            Row(Modifier.fillMaxWidth()) {
+                                rowItems.forEach { item ->
+                                    SweepNavigationItem(
+                                        item = item,
+                                        selected = state.destination == item.destination,
+                                        onNavigate = actions.onNavigate,
+                                        labelStyle = MaterialTheme.typography.labelLarge,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    NAV_ITEMS.forEach { item ->
+                        SweepNavigationItem(
+                            item = item,
+                            selected = state.destination == item.destination,
+                            onNavigate = actions.onNavigate,
+                            labelStyle = MaterialTheme.typography.labelMedium,
+                        )
+                    }
                 }
             }
         },
@@ -161,6 +158,40 @@ private data class NavigationItem(
     val marker: String,
     val label: String,
 )
+
+@Composable
+private fun RowScope.SweepNavigationItem(
+    item: NavigationItem,
+    selected: Boolean,
+    onNavigate: (SweepDestination) -> Unit,
+    labelStyle: TextStyle,
+    modifier: Modifier = Modifier,
+) {
+    NavigationBarItem(
+        selected = selected,
+        onClick = { onNavigate(item.destination) },
+        icon = {
+            Text(
+                item.marker,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.semantics {
+                    contentDescription = "${item.label} section"
+                },
+            )
+        },
+        label = {
+            Text(
+                item.label,
+                maxLines = 1,
+                softWrap = false,
+                style = labelStyle,
+                modifier = Modifier.testTag("navigation-${item.destination.name.lowercase()}"),
+            )
+        },
+        alwaysShowLabel = true,
+        modifier = modifier,
+    )
+}
 
 private val NAV_ITEMS = listOf(
     NavigationItem(SweepDestination.HOME, "H", "Home"),

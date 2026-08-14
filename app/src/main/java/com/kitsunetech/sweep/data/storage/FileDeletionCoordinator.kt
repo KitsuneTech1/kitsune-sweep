@@ -12,8 +12,11 @@ import com.kitsunetech.sweep.domain.StorageFile
 import com.kitsunetech.sweep.domain.buildDeletePlan
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
+import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.nio.file.SecureDirectoryStream
+import java.nio.file.attribute.BasicFileAttributeView
 
 data class DirectDeletionResult(
     val deletedIds: List<String>,
@@ -35,14 +38,57 @@ fun deleteConfirmedDirectFiles(
     val failed = mutableListOf<String>()
     plan.files.forEach { file ->
         val path = file.safeDirectPath()
-        if (path == null || !safetyPolicy.canDelete(path, roots)) {
+        val target = path?.let { safetyPolicy.approvedTarget(it, roots) }
+        if (target == null) {
             failed += file.id
             return@forEach
         }
-        val wasDeleted = runCatching { Files.deleteIfExists(path) }.getOrDefault(false)
+        val wasDeleted = deleteAnchoredRegularFile(target.root, target.relativePath)
         if (wasDeleted) deleted += file.id else failed += file.id
     }
     return DirectDeletionResult(deletedIds = deleted, failedIds = failed)
+}
+
+private fun deleteAnchoredRegularFile(root: Path, relativePath: Path): Boolean {
+    if (relativePath.nameCount == 0) return false
+    val rootDirectory = openSecureDirectory(root) ?: return false
+    return rootDirectory.use { deleteRelativeRegularFile(it, relativePath.toList()) }
+}
+
+internal fun supportsAnchoredDirectDeletion(root: Path): Boolean {
+    val directory = openSecureDirectory(root) ?: return false
+    directory.close()
+    return true
+}
+
+private fun openSecureDirectory(directory: Path): SecureDirectoryStream<Path>? {
+    val absoluteDirectory = directory.toAbsolutePath().normalize()
+    return runCatching { Files.newDirectoryStream(absoluteDirectory) }.getOrNull()
+        as? SecureDirectoryStream<Path>
+}
+
+private fun deleteRelativeRegularFile(
+    directory: SecureDirectoryStream<Path>,
+    components: List<Path>,
+): Boolean {
+    val next = components.firstOrNull() ?: return false
+    if (components.size > 1) {
+        return runCatching {
+            directory.newDirectoryStream(next, LinkOption.NOFOLLOW_LINKS).use { child ->
+                deleteRelativeRegularFile(child, components.drop(1))
+            }
+        }.getOrDefault(false)
+    }
+
+    return runCatching {
+        val attributes = directory
+            .getFileAttributeView(next, BasicFileAttributeView::class.java, LinkOption.NOFOLLOW_LINKS)
+            ?.readAttributes()
+            ?: return false
+        if (!attributes.isRegularFile) return false
+        directory.deleteFile(next)
+        true
+    }.getOrDefault(false)
 }
 
 class FileDeletionCoordinator(

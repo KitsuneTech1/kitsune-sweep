@@ -30,6 +30,7 @@ import com.kitsunetech.sweep.domain.toReadableBytes
 import com.kitsunetech.sweep.ui.FilesState
 import com.kitsunetech.sweep.ui.components.ScanStatus
 import com.kitsunetech.sweep.ui.theme.PathStyle
+import com.kitsunetech.sweep.ui.theme.ByteValueStyle
 import java.text.DateFormat
 import java.util.Date
 
@@ -60,7 +61,14 @@ fun FilesScreen(
                 FilterChip(
                     selected = state.minBytes == threshold,
                     onClick = { onScan(threshold) },
-                    label = { Text(threshold.toReadableBytes()) },
+                    label = {
+                        Text(
+                            threshold.toReadableBytes(),
+                            modifier = Modifier.testTag("threshold-label-${threshold.toReadableBytes()}"),
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                    },
                     modifier = Modifier.testTag("threshold-${threshold.toReadableBytes()}"),
                 )
             }
@@ -139,7 +147,7 @@ private fun FileRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(file.sizeBytes.toReadableBytes(), style = MaterialTheme.typography.labelLarge)
+            Text(file.sizeBytes.toReadableBytes(), style = ByteValueStyle)
         }
     }
 }

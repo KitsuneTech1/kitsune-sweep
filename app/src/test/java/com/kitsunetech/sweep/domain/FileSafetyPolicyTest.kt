@@ -63,4 +63,30 @@ class FileSafetyPolicyTest {
 
         assertFalse(policy.canDelete(link, setOf(root)))
     }
+
+    @Test
+    fun rejectsAnExistingAncestorSymbolicLink() {
+        val root = temporaryFolder.newFolder("shared").toPath()
+        val outside = temporaryFolder.newFolder("outside").toPath()
+        val target = Files.write(outside.resolve("target.bin"), "outside".toByteArray())
+        val linkedDirectory = root.resolve("linked")
+
+        try {
+            Files.createSymbolicLink(linkedDirectory, outside)
+        } catch (error: Exception) {
+            assumeNoException(error)
+        }
+
+        assertFalse(policy.canDelete(linkedDirectory.resolve(target.fileName), setOf(root)))
+    }
+
+    @Test
+    fun rejectsConfiguredPrivateRoots() {
+        val shared = temporaryFolder.newFolder("shared").toPath()
+        val privateRoot = temporaryFolder.newFolder("private").toPath()
+        val privateFile = Files.write(privateRoot.resolve("secret.bin"), "secret".toByteArray())
+        val guardedPolicy = FileSafetyPolicy(protectedRoots = setOf(privateRoot))
+
+        assertFalse(guardedPolicy.canDelete(privateFile, setOf(shared, privateRoot)))
+    }
 }

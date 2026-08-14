@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.kitsunetech.sweep.domain.toReadableBytes
 import com.kitsunetech.sweep.ui.theme.ColdMint
+import com.kitsunetech.sweep.ui.theme.ByteValueStyle
 import com.kitsunetech.sweep.ui.theme.Mist
 import com.kitsunetech.sweep.ui.theme.WarningClay
 
@@ -47,11 +48,14 @@ fun StorageStrata(
             StrataLabel(color = WarningClay, label = "Used", value = used.toReadableBytes())
             StrataLabel(color = ColdMint, label = "Free", value = free.toReadableBytes())
         }
-        Text(
-            text = if (total > 0L) "${total.toReadableBytes()} total" else "Storage total unavailable",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Mist,
-        )
+        if (total > 0L) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(total.toReadableBytes(), style = ByteValueStyle, color = Mist)
+                Text("total", style = MaterialTheme.typography.bodyMedium, color = Mist)
+            }
+        } else {
+            Text("Storage total unavailable", style = MaterialTheme.typography.bodyMedium, color = Mist)
+        }
     }
 }
 
@@ -59,6 +63,7 @@ fun StorageStrata(
 private fun StrataLabel(color: Color, label: String, value: String) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(Modifier.width(10.dp).height(10.dp).clip(RoundedCornerShape(2.dp)).background(color))
-        Text("$label $value", style = MaterialTheme.typography.labelLarge)
+        Text(label, style = MaterialTheme.typography.labelLarge)
+        Text(value, style = ByteValueStyle)
     }
 }

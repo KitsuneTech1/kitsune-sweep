@@ -13,7 +13,7 @@ data class AppRecord(
 ) {
     val totalBytes: Long?
         get() {
-            val sizes = listOfNotNull(appBytes, dataBytes, cacheBytes)
+            val sizes = listOfNotNull(appBytes, dataBytes)
             return if (sizes.isEmpty()) null else sizes.sumOf { it.coerceAtLeast(0L) }
         }
 }

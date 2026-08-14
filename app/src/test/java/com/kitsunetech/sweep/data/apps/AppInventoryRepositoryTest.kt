@@ -1,10 +1,12 @@
 package com.kitsunetech.sweep.data.apps
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class AppInventoryRepositoryTest {
@@ -30,7 +32,7 @@ class AppInventoryRepositoryTest {
         assertEquals(10L, zebra.appBytes)
         assertEquals(20L, zebra.dataBytes)
         assertEquals(30L, zebra.cacheBytes)
-        assertEquals(60L, zebra.totalBytes)
+        assertEquals(30L, zebra.totalBytes)
         assertTrue(zebra.isCold)
     }
 
@@ -62,8 +64,23 @@ class AppInventoryRepositoryTest {
 
         assertEquals(2, apps.size)
         assertNull(apps.first { it.packageName == "blocked.package" }.totalBytes)
-        assertEquals(60L, apps.first { it.packageName == "good.package" }.totalBytes)
+        assertEquals(30L, apps.first { it.packageName == "good.package" }.totalBytes)
         assertEquals(AppProgress(completed = 2, total = 2), progress.last())
+    }
+
+    @Test
+    fun repositoryDoesNotSwallowCancellation() {
+        val repository = DefaultAppInventoryRepository(
+            installedAppsSource = InstalledAppsSource {
+                listOf(InstalledAppFact("one.package", "One", 100L, isSystem = false))
+            },
+            usageFactsSource = UsageFactsSource { emptyMap() },
+            storageFactsSource = StorageFactsSource { throw CancellationException("cancelled") },
+        )
+
+        assertThrows(CancellationException::class.java) {
+            runBlocking { repository.loadApps {} }
+        }
     }
 
     private companion object {

@@ -29,8 +29,46 @@ function Invoke-SweepGradle {
     }
 }
 
+function Assert-CleanReleaseTree {
+    $dirty = @(& git -C $repoRoot status --porcelain=v1 --untracked-files=all)
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Git status could not be read for the release provenance check'
+    }
+    if ($dirty.Count -ne 0) {
+        throw "Release verification requires a clean checkout. Commit or remove: $($dirty -join '; ')"
+    }
+}
+
+function Assert-ExactApkPermissions {
+    param([Parameter(Mandatory)][string]$Apk)
+
+    $aapt = Get-ChildItem (Join-Path $sdkRoot 'build-tools') -Recurse -Filter 'aapt.exe' |
+        Sort-Object FullName -Descending |
+        Select-Object -First 1 -ExpandProperty FullName
+    if ([string]::IsNullOrWhiteSpace($aapt)) {
+        throw 'Android SDK aapt.exe was not found for APK permission verification'
+    }
+
+    $actual = @(& $aapt dump permissions $Apk |
+        ForEach-Object {
+            if ($_ -match "uses-permission: name='([^']+)'") { $Matches[1] }
+        } |
+        Sort-Object -Unique)
+    $expected = @(
+        'android.permission.MANAGE_EXTERNAL_STORAGE',
+        'android.permission.PACKAGE_USAGE_STATS',
+        'android.permission.QUERY_ALL_PACKAGES'
+    )
+    $difference = Compare-Object -ReferenceObject $expected -DifferenceObject $actual
+    if ($null -ne $difference) {
+        throw "APK permission allowlist mismatch. Actual: $($actual -join ', ')"
+    }
+    Write-Output "Verified APK permissions: $($actual -join ', ')"
+}
+
 Push-Location $repoRoot
 try {
+    Assert-CleanReleaseTree
     Invoke-SweepGradle @('testDebugUnitTest')
     Invoke-SweepGradle @('lintDebug')
 
@@ -54,6 +92,7 @@ try {
     if (-not (Test-Path -LiteralPath $apk)) {
         throw "Gradle did not produce the expected APK at $apk"
     }
+    Assert-ExactApkPermissions $apk
     Write-Output "Verified APK: $apk"
 } finally {
     Pop-Location

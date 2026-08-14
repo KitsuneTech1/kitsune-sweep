@@ -2,6 +2,7 @@ package com.kitsunetech.sweep.data.apps
 
 import com.kitsunetech.sweep.domain.AppRecord
 import com.kitsunetech.sweep.domain.classifyColdApp
+import kotlinx.coroutines.CancellationException
 
 data class InstalledAppFact(
     val packageName: String,
@@ -56,6 +57,8 @@ class DefaultAppInventoryRepository(
             installed.forEachIndexed { index, app ->
                 val fact = try {
                     storageFactsSource.load(app.packageName)
+                } catch (error: CancellationException) {
+                    throw error
                 } catch (_: SecurityException) {
                     null
                 } catch (_: Exception) {

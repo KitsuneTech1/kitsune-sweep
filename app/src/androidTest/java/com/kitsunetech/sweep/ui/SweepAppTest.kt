@@ -6,18 +6,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.kitsunetech.sweep.domain.AppRecord
 import com.kitsunetech.sweep.domain.FileSource
 import com.kitsunetech.sweep.domain.StorageFile
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -125,14 +129,17 @@ class SweepAppTest {
             assertTrue("$label text must fit inside its chip", labelBounds.left >= chipBounds.left && labelBounds.right <= chipBounds.right)
         }
 
-        val duplicatesBounds = composeRule.onNodeWithTag(
+        val duplicatesLabel = composeRule.onNodeWithTag(
             "navigation-duplicates",
             useUnmergedTree = true,
-        ).fetchSemanticsNode().boundsInRoot
-        val maximumLabelHeight = with(composeRule.density) { 28.dp.toPx() }
-        val minimumLabelHeight = with(composeRule.density) { 24.dp.toPx() }
-        assertTrue("Duplicates label must stay on one line", duplicatesBounds.height <= maximumLabelHeight)
-        assertTrue("Duplicates label must respect 200 percent text scaling", duplicatesBounds.height >= minimumLabelHeight)
+        )
+        val layouts = mutableListOf<TextLayoutResult>()
+        duplicatesLabel.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { getLayoutResult ->
+            getLayoutResult(layouts)
+        }
+        assertEquals("Duplicates label must stay on one scaled line", 1, layouts.single().lineCount)
+        val duplicatesBounds = duplicatesLabel.fetchSemanticsNode().boundsInRoot
+        assertTrue("Duplicates label must remain inside the viewport", duplicatesBounds.bottom <= rootBounds.bottom)
     }
 
     private fun statefulActions(

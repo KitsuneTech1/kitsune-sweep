@@ -36,10 +36,12 @@ The project uses Gradle 9.1.0, Android Gradle Plugin 9.0.1, Kotlin 2.2.10, compi
 
 Run `scripts/verify.ps1` from PowerShell for unit tests, lint, connected emulator tests when exactly one emulator is present, and debug APK assembly. The script refuses connected tests if any physical Android device is attached. The verified artifact is produced at `app/build/outputs/apk/debug/app-debug.apk`.
 
-The hardware acceptance pass on the S25 Ultra is separate. The app should not be installed on the phone until USB debugging is connected and the owner explicitly requests installation.
+The 0.1.0 debug APK was installed on Moo's S25 Ultra after USB debugging was explicitly connected. Physical acceptance covered permission refresh, shared-file scanning, exact duplicate hashing, app inventory, and the anchored-deletion capability check. No deletion or uninstall action was confirmed.
 
 ## 0.1.0 debug release evidence
 
 The headless glass API 34 verification pass completed on 2026-08-14: 44 JVM tests, 14 instrumentation tests, and Android lint all passed. The first clean corrected build produced a 29,624,587-byte APK with SHA-256 `6068DD06E86A10BDBFC45BD231D0FD7BF42458EEEAE5006F7B74D419EA1C9B98`.
 
 Manifest inspection found exactly the three documented special-access permissions. The emulator acceptance record is in `docs/testing/0.1.0-emulator-acceptance.md`; it records the remaining gap: live MediaStore approval and cancellation were unavailable from the headless provider, while the Compose confirmation and remaining-path result flows passed.
+
+The physical S25 pass checked 16,418 shared files, found 68 files above the 100 MB threshold, hashed 8 duplicate candidates, and reviewed 778 installed apps without an error. The S25 shared-storage provider passed the required `SecureDirectoryStream` assertion. Live deletion approval and cancellation remain intentionally untested; nothing was selected or deleted.

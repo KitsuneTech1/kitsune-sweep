@@ -1,5 +1,10 @@
 function Get-SweepAdbDevices {
-    param([Parameter(Mandatory)][string[]]$Lines)
+    param(
+        [Parameter(Mandatory)]
+        [AllowEmptyCollection()]
+        [AllowEmptyString()]
+        [string[]]$Lines
+    )
 
     @($Lines | ForEach-Object {
         if ($_ -match '^(\S+)\s+(device|offline|unauthorized)\b') {

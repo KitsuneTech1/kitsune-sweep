@@ -4,7 +4,8 @@ $ErrorActionPreference = 'Stop'
 
 $emulatorOnly = @(Get-SweepAdbDevices @(
     'List of devices attached',
-    'emulator-5554 device product:sdk_gphone model:sdk_gphone transport_id:1'
+    'emulator-5554 device product:sdk_gphone model:sdk_gphone transport_id:1',
+    ''
 ))
 if ($emulatorOnly.Count -ne 1 -or -not $emulatorOnly[0].IsEmulator) {
     throw 'The adb parser did not recognize one emulator.'

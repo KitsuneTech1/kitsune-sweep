@@ -12,13 +12,17 @@ data class PermissionState(
     val usageAccess: Boolean,
 )
 
+fun interface PermissionStateSource {
+    fun read(): PermissionState
+}
+
 class PermissionStateReader(
     context: Context,
-) {
+) : PermissionStateSource {
     private val applicationContext = context.applicationContext
     private val appOpsManager = applicationContext.getSystemService(AppOpsManager::class.java)
 
-    fun read(): PermissionState = PermissionState(
+    override fun read(): PermissionState = PermissionState(
         allFilesAccess = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
             Environment.isExternalStorageManager(),
         usageAccess = usageMode() == AppOpsManager.MODE_ALLOWED,

@@ -10,6 +10,7 @@ import android.os.Process
 data class PermissionState(
     val allFilesAccess: Boolean,
     val usageAccess: Boolean,
+    val allFilesAccessAvailable: Boolean = true,
 )
 
 fun interface PermissionStateSource {
@@ -26,6 +27,7 @@ class PermissionStateReader(
         allFilesAccess = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
             Environment.isExternalStorageManager(),
         usageAccess = usageMode() == AppOpsManager.MODE_ALLOWED,
+        allFilesAccessAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
     )
 
     @SuppressLint("WrongConstant")

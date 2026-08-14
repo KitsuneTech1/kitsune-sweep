@@ -21,16 +21,17 @@ class DuplicateDetectorTest {
             ),
         )
 
-        val groups = DuplicateDetector(hasher).findExact(
+        val result = DuplicateDetector(hasher).findExact(
             files = listOf(unique, first, second, different),
             onProgress = {},
         )
 
         assertFalse("unique-size file must not be read", hasher.hashedIds.contains("unique"))
         assertEquals(setOf("first", "second", "different"), hasher.hashedIds.toSet())
-        assertEquals(1, groups.size)
-        assertEquals(listOf("first", "second"), groups.single().files.map { it.id })
-        assertEquals(100L, groups.single().reclaimableBytes)
+        assertEquals(1, result.groups.size)
+        assertEquals(listOf("first", "second"), result.groups.single().files.map { it.id })
+        assertEquals(100L, result.groups.single().reclaimableBytes)
+        assertEquals(0, result.skippedFiles)
     }
 
     @Test
@@ -38,15 +39,36 @@ class DuplicateDetectorTest {
         val hasher = RecordingHasher(mapOf("a" to "hash", "b" to "hash"))
         val progress = mutableListOf<HashProgress>()
 
-        val groups = DuplicateDetector(hasher).findExact(
+        val result = DuplicateDetector(hasher).findExact(
             files = listOf(file("empty-a", 0L), file("empty-b", 0L), file("a", 5L), file("b", 5L)),
             onProgress = { progress += it },
         )
 
-        assertEquals(1, groups.size)
+        assertEquals(1, result.groups.size)
         assertTrue(progress.isNotEmpty())
         assertEquals(2, progress.last().completed)
         assertEquals(2, progress.last().total)
+    }
+
+    @Test
+    fun skipsUnreadableCandidatesAndKeepsCompletedDuplicateGroups() = runBlocking {
+        val first = file("first", 100L)
+        val unreadable = file("unreadable", 100L)
+        val second = file("second", 100L)
+        val progress = mutableListOf<HashProgress>()
+        val hasher = ContentHasher { item ->
+            if (item.id == "unreadable") throw java.io.IOException("gone")
+            "same-hash"
+        }
+
+        val result = DuplicateDetector(hasher).findExact(
+            files = listOf(first, unreadable, second),
+            onProgress = { progress += it },
+        )
+
+        assertEquals(listOf("first", "second"), result.groups.single().files.map { it.id })
+        assertEquals(1, result.skippedFiles)
+        assertEquals(HashProgress(3, 3), progress.last())
     }
 
     private fun file(id: String, size: Long) = StorageFile(

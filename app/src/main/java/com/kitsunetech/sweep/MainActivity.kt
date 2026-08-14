@@ -14,7 +14,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.lifecycleScope
 import com.kitsunetech.sweep.data.system.SystemActionSpec
 import com.kitsunetech.sweep.data.system.resolveIntent
 import com.kitsunetech.sweep.domain.DeletePlan
@@ -22,15 +21,10 @@ import com.kitsunetech.sweep.ui.SweepActions
 import com.kitsunetech.sweep.ui.SweepApp
 import com.kitsunetech.sweep.ui.SweepViewModel
 import com.kitsunetech.sweep.ui.theme.SweepTheme
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private val dependencies by lazy { SweepDependencies(applicationContext) }
     private val viewModel by viewModels<SweepViewModel> { dependencies.viewModelFactory }
-    private var directPlanAfterMediaApproval: DeletePlan? = null
-
     private val settingsLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
     ) {
@@ -40,14 +34,12 @@ class MainActivity : ComponentActivity() {
     private val mediaDeletionLauncher = registerForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult(),
     ) { result ->
-        val directPlan = directPlanAfterMediaApproval
-        directPlanAfterMediaApproval = null
-        if (result.resultCode == Activity.RESULT_OK) {
-            if (directPlan != null && directPlan.files.isNotEmpty()) {
-                deleteDirectFiles(directPlan)
-            } else {
-                refreshFileScan()
-            }
+        val accepted = viewModel.resolvePendingDeletion(
+            approved = result.resultCode == Activity.RESULT_OK,
+            completeApproved = dependencies.deletionCoordinator::completeApprovedDeletion,
+        )
+        if (!accepted) {
+            Toast.makeText(this, "Deletion result could not be verified. Scan again.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -81,6 +73,7 @@ class MainActivity : ComponentActivity() {
                         onAppDetails = { launchSystemAction(SystemActionSpec.AppDetails(it)) },
                         onUninstall = { launchSystemAction(SystemActionSpec.Uninstall(it)) },
                         onConfirmDeletion = ::requestDeletion,
+                        onDismissDeletionNotice = viewModel::dismissDeletionNotice,
                     ),
                 )
             }
@@ -108,39 +101,19 @@ class MainActivity : ComponentActivity() {
                 Toast.makeText(this, "Android could not prepare that deletion.", Toast.LENGTH_SHORT).show()
                 return
             }
-        if (request.unsupportedIds.isNotEmpty()) {
-            Toast.makeText(
-                this,
-                "${request.unsupportedIds.size} files need to be reviewed again.",
-                Toast.LENGTH_SHORT,
-            ).show()
-        }
+        viewModel.retainPendingDeletion(request)
         val sender = request.mediaStoreIntentSender
         if (sender != null) {
-            directPlanAfterMediaApproval = request.directPlan
             mediaDeletionLauncher.launch(IntentSenderRequest.Builder(sender).build())
-        } else if (request.directPlan.files.isNotEmpty()) {
-            deleteDirectFiles(request.directPlan)
-        }
-    }
-
-    private fun deleteDirectFiles(plan: DeletePlan) {
-        lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) {
-                dependencies.deletionCoordinator.deleteConfirmedDirectFiles(plan)
+        } else {
+            val accepted = viewModel.resolvePendingDeletion(
+                approved = true,
+                completeApproved = dependencies.deletionCoordinator::completeApprovedDeletion,
+            )
+            if (!accepted) {
+                Toast.makeText(this, "Deletion could not start. Scan again.", Toast.LENGTH_SHORT).show()
             }
-            val message = if (result.failedIds.isEmpty()) {
-                "Deleted ${result.deletedIds.size} files."
-            } else {
-                "Deleted ${result.deletedIds.size} files. ${result.failedIds.size} need review."
-            }
-            Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
-            refreshFileScan()
         }
-    }
-
-    private fun refreshFileScan() {
-        viewModel.scanLargeFiles(viewModel.state.value.files.minBytes)
     }
 }
 

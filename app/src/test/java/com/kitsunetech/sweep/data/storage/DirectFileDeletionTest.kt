@@ -5,6 +5,7 @@ import com.kitsunetech.sweep.domain.FileSource
 import com.kitsunetech.sweep.domain.StorageFile
 import com.kitsunetech.sweep.domain.buildDeletePlan
 import java.nio.file.Files
+import java.nio.file.attribute.BasicFileAttributes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -113,14 +114,38 @@ class DirectFileDeletionTest {
         assertTrue(Files.exists(outsideTarget))
     }
 
-    private fun item(id: String, path: java.nio.file.Path) = StorageFile(
-        id = id,
-        displayName = path.fileName.toString(),
-        path = path.toString(),
-        contentUri = null,
-        sizeBytes = runCatching { Files.size(path) }.getOrDefault(0L),
-        modifiedAtMillis = 0L,
-        mimeType = null,
-        source = FileSource.DIRECT,
-    )
+    @Test
+    fun failsClosedWhenTheReviewedLeafIsReplaced() {
+        val root = temporaryFolder.newFolder("shared").toPath()
+        val target = Files.write(root.resolve("target.bin"), "reviewed".toByteArray())
+        val planned = item("target", target)
+
+        Files.delete(target)
+        Files.write(target, "replacement-content".toByteArray())
+
+        val result = deleteConfirmedDirectFiles(
+            plan = buildDeletePlan(listOf(planned)),
+            roots = setOf(root),
+            safetyPolicy = FileSafetyPolicy(),
+        )
+
+        assertEquals(emptyList<String>(), result.deletedIds)
+        assertEquals(listOf("target"), result.failedIds)
+        assertTrue(Files.exists(target))
+    }
+
+    private fun item(id: String, path: java.nio.file.Path): StorageFile {
+        val attributes = Files.readAttributes(path, BasicFileAttributes::class.java)
+        return StorageFile(
+            id = id,
+            displayName = path.fileName.toString(),
+            path = path.toString(),
+            contentUri = null,
+            sizeBytes = attributes.size(),
+            modifiedAtMillis = attributes.lastModifiedTime().toMillis(),
+            mimeType = null,
+            source = FileSource.DIRECT,
+            fileKey = attributes.fileKey()?.toString(),
+        )
+    }
 }

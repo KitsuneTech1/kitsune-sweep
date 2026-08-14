@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -46,6 +48,7 @@ data class SweepActions(
     val onUninstall: (String) -> Unit = {},
     val onReviewDeletion: (DeletePlan) -> Unit = {},
     val onConfirmDeletion: (DeletePlan) -> Unit = {},
+    val onDismissDeletionNotice: () -> Unit = {},
 )
 
 @Composable
@@ -97,7 +100,6 @@ fun SweepApp(
         when (state.destination) {
             SweepDestination.HOME -> HomeScreen(
                 state = state.home,
-                onRequestAllFiles = actions.onRequestAllFiles,
                 onRequestUsage = actions.onRequestUsage,
                 onOpenStorageTools = actions.onOpenStorageTools,
                 onClearCaches = actions.onClearCaches,
@@ -105,6 +107,9 @@ fun SweepApp(
             )
             SweepDestination.FILES -> FilesScreen(
                 state = state.files,
+                allFilesAccess = state.home.permissions.allFilesAccess,
+                allFilesAccessAvailable = state.home.permissions.allFilesAccessAvailable,
+                onRequestAllFiles = actions.onRequestAllFiles,
                 onScan = actions.onScanLargeFiles,
                 onToggleFile = actions.onToggleFile,
                 onReviewDelete = review,
@@ -112,6 +117,9 @@ fun SweepApp(
             )
             SweepDestination.DUPLICATES -> DuplicatesScreen(
                 state = state.duplicates,
+                allFilesAccess = state.home.permissions.allFilesAccess,
+                allFilesAccessAvailable = state.home.permissions.allFilesAccessAvailable,
+                onRequestAllFiles = actions.onRequestAllFiles,
                 onScan = actions.onScanDuplicates,
                 onToggleFile = actions.onToggleDuplicateFile,
                 onReviewDelete = review,
@@ -148,6 +156,27 @@ fun SweepApp(
             },
             dismissButton = {
                 TextButton(onClick = { planUnderReview = null }) { Text("Cancel") }
+            },
+        )
+    }
+
+    state.deletionNotice?.let { notice ->
+        val title = if (notice.deletedCount == 1) "Deleted 1 file" else "Deleted ${notice.deletedCount} files"
+        AlertDialog(
+            onDismissRequest = actions.onDismissDeletionNotice,
+            title = { Text(title) },
+            text = {
+                Text(
+                    if (notice.remainingLocations.isEmpty()) {
+                        "Every requested file is gone."
+                    } else {
+                        "Still present:\n${notice.remainingLocations.joinToString("\n")}"
+                    },
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = actions.onDismissDeletionNotice) { Text("Done") }
             },
         )
     }

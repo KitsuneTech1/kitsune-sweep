@@ -42,14 +42,15 @@ The app does not promise performance gains from clearing cache. It does not call
 
 - Show total, used, and free internal storage.
 - Display a storage-strata graphic whose sections reflect files, app storage, cache, and free space when those values are available.
-- Show when All Files Access or Usage Access is missing.
+- Show Usage Access status on Home and All Files Access status on Files and Duplicates.
 - Keep useful read-only functions available when either permission is denied.
 - Provide one direct action for Android or Samsung storage settings.
 
 ### Large-file review
 
 - Scan shared internal storage without following symbolic links.
-- Use MediaStore when All Files Access is unavailable.
+- Require All Files Access for Files and Duplicates on Android 11 and newer. Android otherwise exposes an incomplete view, so the app must not label a partial MediaStore result as a complete scan.
+- Keep Home and Apps usable when All Files Access is denied. On Android 10 and older, explain that shared-file cleaning is unavailable in version 0.1.
 - Use direct shared-storage traversal after Moo grants All Files Access.
 - Default to files at least 100 MB and allow 50 MB, 100 MB, 250 MB, 500 MB, and 1 GB filters.
 - Show name, path, type, size, and modified date.
@@ -119,7 +120,8 @@ The first release uses four destinations:
 4. The view model merges results into immutable UI state.
 5. Compose renders loading, data, empty, permission, or partial-error states.
 6. Destructive actions return to an explicit review sheet before any system request or direct deletion.
-7. A completed action triggers a fresh scan instead of guessing how much space changed.
+7. Direct deletion rechecks the reviewed file identity, size, modified time, path, and parent chain through an anchored directory handle.
+8. A completed action verifies every requested item, reports deleted count and remaining paths, then triggers a fresh scan.
 
 ## Error handling
 
@@ -127,7 +129,8 @@ The first release uses four destinations:
 - A file disappearing during a scan is skipped and counted, not treated as a fatal scan failure.
 - A package disappearing during app analysis is skipped.
 - Storage-stat failures display `Size unavailable` for that app.
-- Cancellation stops traversal and hashing promptly.
+- Leaving a scan destination cancels its active job. New file scans invalidate file and duplicate generations so stale results cannot return.
+- An unreadable duplicate candidate is skipped and counted without discarding completed groups. Cancellation still stops traversal and hashing promptly.
 - Out-of-memory risk is limited by streaming directory entries and file hashes instead of loading file contents into memory.
 - UI errors state what failed and give one useful next action.
 

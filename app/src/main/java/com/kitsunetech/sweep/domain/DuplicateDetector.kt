@@ -1,7 +1,9 @@
 package com.kitsunetech.sweep.domain
 
 import java.io.InputStream
+import java.io.IOException
 import java.security.MessageDigest
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
@@ -45,13 +47,18 @@ data class DuplicateGroup(
     val reclaimableBytes: Long,
 )
 
+data class DuplicateScanResult(
+    val groups: List<DuplicateGroup>,
+    val skippedFiles: Int,
+)
+
 class DuplicateDetector(
     private val hasher: ContentHasher,
 ) {
     suspend fun findExact(
         files: List<StorageFile>,
         onProgress: (HashProgress) -> Unit,
-    ): List<DuplicateGroup> {
+    ): DuplicateScanResult {
         val candidates = files
             .distinctBy { it.id }
             .filter { it.sizeBytes > 0L }
@@ -61,15 +68,24 @@ class DuplicateDetector(
             .flatten()
         val context = currentCoroutineContext()
         val hashes = linkedMapOf<String, MutableList<StorageFile>>()
+        var skippedFiles = 0
 
         candidates.forEachIndexed { index, file ->
             context.ensureActive()
-            val hash = hasher.sha256(file)
-            hashes.getOrPut(hash) { mutableListOf() } += file
+            try {
+                val hash = hasher.sha256(file)
+                hashes.getOrPut(hash) { mutableListOf() } += file
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: IOException) {
+                skippedFiles += 1
+            } catch (_: SecurityException) {
+                skippedFiles += 1
+            }
             onProgress(HashProgress(index + 1, candidates.size))
         }
 
-        return hashes
+        val groups = hashes
             .asSequence()
             .filter { (_, groupFiles) -> groupFiles.size > 1 }
             .map { (hash, groupFiles) ->
@@ -84,5 +100,6 @@ class DuplicateDetector(
             }
             .sortedByDescending { it.reclaimableBytes }
             .toList()
+        return DuplicateScanResult(groups = groups, skippedFiles = skippedFiles)
     }
 }

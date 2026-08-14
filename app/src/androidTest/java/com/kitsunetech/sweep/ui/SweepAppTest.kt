@@ -21,6 +21,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import com.kitsunetech.sweep.domain.AppRecord
 import com.kitsunetech.sweep.domain.FileSource
 import com.kitsunetech.sweep.domain.StorageFile
+import com.kitsunetech.sweep.data.system.PermissionState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -43,7 +44,6 @@ class SweepAppTest {
         composeRule.onNodeWithText("Kitsune Sweep").assertIsDisplayed()
         composeRule.onNodeWithText("Storage, without the scare tactics.").assertIsDisplayed()
         composeRule.onNodeWithText("Samsung storage tools").assertIsDisplayed()
-        composeRule.onNodeWithText("All Files Access").assertIsDisplayed()
         composeRule.onNodeWithText("Usage Access").assertIsDisplayed()
 
         composeRule.onNodeWithText("Files").performClick()
@@ -59,6 +59,29 @@ class SweepAppTest {
         composeRule.onNodeWithText("Review apps").assertIsDisplayed()
         composeRule.onNodeWithText("Usage unknown").assertIsDisplayed()
         composeRule.onNodeWithText("Clear cache in Android").assertIsDisplayed()
+    }
+
+    @Test
+    fun gatesSharedFileScreensUntilAllFilesAccessIsGranted() {
+        composeRule.setContent {
+            var state by remember {
+                mutableStateOf(
+                    sampleState().copy(
+                        destination = SweepDestination.FILES,
+                        home = sampleState().home.copy(
+                            permissions = PermissionState(allFilesAccess = false, usageAccess = false),
+                        ),
+                    ),
+                )
+            }
+            SweepApp(state = state, actions = statefulActions(state) { state = it })
+        }
+
+        composeRule.onNodeWithText("All Files Access").assertIsDisplayed()
+        composeRule.onNodeWithText("Grant All Files Access to scan shared files.").assertIsDisplayed()
+
+        composeRule.onNodeWithText("Duplicates").performClick()
+        composeRule.onNodeWithText("Grant All Files Access to check shared files.").assertIsDisplayed()
     }
 
     @Test
@@ -78,6 +101,29 @@ class SweepAppTest {
         composeRule.onNodeWithText("Delete 2 files totaling 3 MB?").assertIsDisplayed()
         composeRule.onNodeWithText("Only these files will be requested for deletion.").assertIsDisplayed()
         composeRule.onNodeWithText("Delete files").assertIsDisplayed()
+    }
+
+    @Test
+    fun reportsDeletionCountAndEveryRemainingLocation() {
+        composeRule.setContent {
+            SweepApp(
+                state = sampleState().copy(
+                    deletionNotice = DeletionNotice(
+                        deletedCount = 1,
+                        remainingLocations = listOf(
+                            "/storage/emulated/0/Download/kept.bin",
+                            "content://media/external/file/42",
+                        ),
+                    ),
+                ),
+                actions = SweepActions(),
+            )
+        }
+
+        composeRule.onNodeWithText("Deleted 1 file").assertIsDisplayed()
+        composeRule.onNodeWithText(
+            "Still present:\n/storage/emulated/0/Download/kept.bin\ncontent://media/external/file/42",
+        ).assertIsDisplayed()
     }
 
     @Test
@@ -161,7 +207,11 @@ class SweepAppTest {
             emptyList()
         }
         return SweepUiState(
-            home = HomeState(totalBytes = 256L * 1024L * 1024L * 1024L, freeBytes = 96L * 1024L * 1024L * 1024L),
+            home = HomeState(
+                permissions = PermissionState(allFilesAccess = true, usageAccess = false),
+                totalBytes = 256L * 1024L * 1024L * 1024L,
+                freeBytes = 96L * 1024L * 1024L * 1024L,
+            ),
             files = FilesState(files = files),
             apps = AppsState(
                 apps = listOf(

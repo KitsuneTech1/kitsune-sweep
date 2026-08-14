@@ -27,12 +27,16 @@ import com.kitsunetech.sweep.domain.buildDeletePlan
 import com.kitsunetech.sweep.domain.toReadableBytes
 import com.kitsunetech.sweep.ui.DuplicatesState
 import com.kitsunetech.sweep.ui.components.ScanStatus
+import com.kitsunetech.sweep.ui.components.PermissionCard
 import com.kitsunetech.sweep.ui.theme.PathStyle
 import com.kitsunetech.sweep.ui.theme.ByteValueStyle
 
 @Composable
 fun DuplicatesScreen(
     state: DuplicatesState,
+    allFilesAccess: Boolean,
+    allFilesAccessAvailable: Boolean,
+    onRequestAllFiles: () -> Unit,
     onScan: () -> Unit,
     onToggleFile: (String) -> Unit,
     onReviewDelete: (DeletePlan) -> Unit,
@@ -49,6 +53,20 @@ fun DuplicatesScreen(
             "Matches require the same size and SHA-256 hash. Pick every file yourself.",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (!allFilesAccess) {
+            if (!allFilesAccessAvailable) {
+                Text("Shared-file duplicate checks require Android 11 or newer.")
+                return@Column
+            }
+            PermissionCard(
+                title = "All Files Access",
+                explanation = "Required to inspect shared files for exact duplicates.",
+                granted = false,
+                onRequest = onRequestAllFiles,
+            )
+            Text("Grant All Files Access to check shared files.")
+            return@Column
+        }
         Button(onClick = onScan, modifier = Modifier.fillMaxWidth()) {
             Text("Find exact duplicates")
         }
@@ -57,6 +75,12 @@ fun DuplicatesScreen(
             progressText = state.progress?.let { "${it.completed} of ${it.total} files hashed" },
             error = state.error,
         )
+        if (state.skippedFiles > 0) {
+            Text(
+                "${state.skippedFiles} files could not be read and were skipped.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         if (!state.isLoading && state.groups.isEmpty()) {
             Text("No exact duplicates found")
         }

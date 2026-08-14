@@ -14,5 +14,5 @@ data class StorageFile(
     val modifiedAtMillis: Long,
     val mimeType: String?,
     val source: FileSource,
+    val fileKey: String? = null,
 )
-

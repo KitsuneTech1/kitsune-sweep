@@ -103,6 +103,7 @@ class DirectStorageScanner(
                     modifiedAtMillis = attributes.lastModifiedTime().toMillis(),
                     mimeType = runCatching { Files.probeContentType(path) }.getOrNull(),
                     source = FileSource.DIRECT,
+                    fileKey = attributes.fileKey()?.toString(),
                 )
             }
             return FileVisitResult.CONTINUE

@@ -19,7 +19,6 @@ import com.kitsunetech.sweep.ui.components.StorageStrata
 @Composable
 fun HomeScreen(
     state: HomeState,
-    onRequestAllFiles: () -> Unit,
     onRequestUsage: () -> Unit,
     onOpenStorageTools: () -> Unit,
     onClearCaches: () -> Unit,
@@ -47,14 +46,6 @@ fun HomeScreen(
         }
         state.error?.let { message ->
             item { Text(message, color = MaterialTheme.colorScheme.error) }
-        }
-        item {
-            PermissionCard(
-                title = "All Files Access",
-                explanation = "Lets the file scanner inspect shared storage directly.",
-                granted = state.permissions.allFilesAccess,
-                onRequest = onRequestAllFiles,
-            )
         }
         item {
             PermissionCard(

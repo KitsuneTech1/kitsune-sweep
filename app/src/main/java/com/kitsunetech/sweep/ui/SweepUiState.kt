@@ -43,6 +43,7 @@ data class DuplicatesState(
     val selectedIds: Set<String> = emptySet(),
     val progress: HashProgress? = null,
     val isLoading: Boolean = false,
+    val skippedFiles: Int = 0,
     val error: String? = null,
 )
 
@@ -54,10 +55,16 @@ data class AppsState(
     val error: String? = null,
 )
 
+data class DeletionNotice(
+    val deletedCount: Int,
+    val remainingLocations: List<String>,
+)
+
 data class SweepUiState(
     val destination: SweepDestination = SweepDestination.HOME,
     val home: HomeState = HomeState(),
     val files: FilesState = FilesState(),
     val duplicates: DuplicatesState = DuplicatesState(),
     val apps: AppsState = AppsState(),
+    val deletionNotice: DeletionNotice? = null,
 )

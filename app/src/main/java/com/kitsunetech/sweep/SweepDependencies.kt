@@ -10,10 +10,8 @@ import com.kitsunetech.sweep.data.apps.AndroidStorageFactsSource
 import com.kitsunetech.sweep.data.apps.AndroidUsageFactsSource
 import com.kitsunetech.sweep.data.apps.DefaultAppInventoryRepository
 import com.kitsunetech.sweep.data.storage.AndroidContentStreamOpener
-import com.kitsunetech.sweep.data.storage.AndroidMediaStoreSource
 import com.kitsunetech.sweep.data.storage.DirectStorageScanner
 import com.kitsunetech.sweep.data.storage.FileDeletionCoordinator
-import com.kitsunetech.sweep.data.storage.MediaStoreScanner
 import com.kitsunetech.sweep.data.system.PermissionStateReader
 import com.kitsunetech.sweep.domain.FileSafetyPolicy
 import com.kitsunetech.sweep.domain.DuplicateDetector
@@ -26,7 +24,6 @@ import java.nio.file.Path
 class SweepDependencies(context: Context) {
     private val applicationContext = context.applicationContext
     private val sharedRoots: Set<Path> = setOf(Environment.getExternalStorageDirectory().toPath())
-    private val mediaStoreSource = AndroidMediaStoreSource(applicationContext)
     private val appInventory = DefaultAppInventoryRepository(
         installedAppsSource = AndroidInstalledAppsSource(applicationContext),
         usageFactsSource = AndroidUsageFactsSource(applicationContext),
@@ -53,7 +50,6 @@ class SweepDependencies(context: Context) {
                 permissionStateSource = PermissionStateReader(applicationContext),
                 storageSummarySource = AndroidStorageSummarySource(),
                 directScanner = DirectStorageScanner(sharedRoots),
-                mediaStoreScanner = MediaStoreScanner(mediaStoreSource::load),
                 duplicateDetector = DuplicateDetector(
                     Sha256ContentHasher(AndroidContentStreamOpener(applicationContext)),
                 ),

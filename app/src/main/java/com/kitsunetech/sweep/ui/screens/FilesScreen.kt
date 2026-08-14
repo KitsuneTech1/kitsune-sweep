@@ -28,6 +28,7 @@ import com.kitsunetech.sweep.domain.StorageFile
 import com.kitsunetech.sweep.domain.buildDeletePlan
 import com.kitsunetech.sweep.domain.toReadableBytes
 import com.kitsunetech.sweep.ui.FilesState
+import com.kitsunetech.sweep.ui.components.PermissionCard
 import com.kitsunetech.sweep.ui.components.ScanStatus
 import com.kitsunetech.sweep.ui.theme.PathStyle
 import com.kitsunetech.sweep.ui.theme.ByteValueStyle
@@ -37,6 +38,9 @@ import java.util.Date
 @Composable
 fun FilesScreen(
     state: FilesState,
+    allFilesAccess: Boolean,
+    allFilesAccessAvailable: Boolean,
+    onRequestAllFiles: () -> Unit,
     onScan: (Long) -> Unit,
     onToggleFile: (String) -> Unit,
     onReviewDelete: (DeletePlan) -> Unit,
@@ -52,6 +56,20 @@ fun FilesScreen(
             "Review shared files by size. Nothing is selected automatically.",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (!allFilesAccess) {
+            if (!allFilesAccessAvailable) {
+                Text("Shared-file cleaning requires Android 11 or newer.")
+                return@Column
+            }
+            PermissionCard(
+                title = "All Files Access",
+                explanation = "Android blocks a complete shared-file scan without this access.",
+                granted = false,
+                onRequest = onRequestAllFiles,
+            )
+            Text("Grant All Files Access to scan shared files.")
+            return@Column
+        }
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),

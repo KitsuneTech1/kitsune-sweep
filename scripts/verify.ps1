@@ -1,6 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot 'VerifyHelpers.ps1')
 $gradle = Join-Path $repoRoot 'gradlew.bat'
 $androidJbr = 'C:\Program Files\Android\Android Studio\jbr'
 if (Test-Path -LiteralPath $androidJbr) {
@@ -69,12 +70,21 @@ function Assert-ExactApkPermissions {
 Push-Location $repoRoot
 try {
     Assert-CleanReleaseTree
+    & (Join-Path $PSScriptRoot 'test-verify-helpers.ps1')
+    if ($LASTEXITCODE -ne 0) {
+        throw 'ADB device safety parser tests failed.'
+    }
     Invoke-SweepGradle @('testDebugUnitTest')
     Invoke-SweepGradle @('lintDebug')
 
-    $connectedEmulator = & $adb devices | Select-String -Pattern '^emulator-\d+\s+device$'
-    if ($null -ne $connectedEmulator) {
-        $serial = ($connectedEmulator -split '\s+')[0]
+    $devices = @(Get-SweepAdbDevices @(& $adb devices))
+    Assert-NoPhysicalAndroidDevices $devices
+    $connectedEmulators = @($devices | Where-Object { $_.IsEmulator -and $_.State -eq 'device' })
+    if ($connectedEmulators.Count -gt 1) {
+        throw "Verification requires one emulator, but found: $($connectedEmulators.Serial -join ', ')"
+    }
+    if ($connectedEmulators.Count -eq 1) {
+        $serial = $connectedEmulators[0].Serial
         & $adb -s $serial shell wm size reset
         & $adb -s $serial shell cmd window user-rotation free
         & $adb -s $serial shell settings put system accelerometer_rotation 1
@@ -82,7 +92,17 @@ try {
         if ($LASTEXITCODE -ne 0) {
             throw "Unable to reset emulator display state on $serial"
         }
-        Invoke-SweepGradle @('connectedDebugAndroidTest')
+        $previousAndroidSerial = $env:ANDROID_SERIAL
+        try {
+            $env:ANDROID_SERIAL = $serial
+            Invoke-SweepGradle @('connectedDebugAndroidTest')
+        } finally {
+            if ($null -eq $previousAndroidSerial) {
+                Remove-Item Env:ANDROID_SERIAL -ErrorAction SilentlyContinue
+            } else {
+                $env:ANDROID_SERIAL = $previousAndroidSerial
+            }
+        }
     } else {
         Write-Output 'No connected emulator. Instrumentation tests were skipped.'
     }

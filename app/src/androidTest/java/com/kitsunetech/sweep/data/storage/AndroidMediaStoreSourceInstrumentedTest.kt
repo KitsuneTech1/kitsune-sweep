@@ -21,16 +21,24 @@ class AndroidMediaStoreSourceInstrumentedTest {
             put(MediaStore.MediaColumns.DISPLAY_NAME, "kitsune-sweep-source-test.bin")
             put(MediaStore.MediaColumns.MIME_TYPE, "application/octet-stream")
             put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/KitsuneSweepTests")
+            put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
         val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
         assertNotNull(uri)
 
         try {
             resolver.openOutputStream(uri!!)!!.use { it.write(ByteArray(128) { 7 }) }
+            resolver.update(
+                uri,
+                ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) },
+                null,
+                null,
+            )
 
             val rows = AndroidMediaStoreSource(context).load()
 
             assertTrue(
+                "Expected inserted row. Loaded: $rows",
                 rows.any {
                     it.displayName == "kitsune-sweep-source-test.bin" && it.sizeBytes == 128L
                 },

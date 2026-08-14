@@ -40,6 +40,6 @@ The hardware acceptance pass on the S25 Ultra is separate. The app should not be
 
 ## 0.1.0 debug release evidence
 
-The headless glass API 34 verification pass completed on 2026-08-14: 36 JVM tests, 12 instrumentation tests, and Android lint all passed. `clean assembleDebug` produced a 29,591,819-byte APK with SHA-256 `30E6997252C9590D0B785519A84BA7ACAE58B37A193274FF3137BEA6C55A20B5`.
+The headless glass API 34 verification pass completed on 2026-08-14: 44 JVM tests, 14 instrumentation tests, and Android lint all passed. The first clean corrected build produced a 29,624,587-byte APK with SHA-256 `6068DD06E86A10BDBFC45BD231D0FD7BF42458EEEAE5006F7B74D419EA1C9B98`.
 
-Manifest inspection found exactly the three documented special-access permissions. The emulator acceptance record is in `docs/testing/0.1.0-emulator-acceptance.md`; it records the one gap: live MediaStore cancellation was unavailable from the headless provider, while the Compose confirmation flow passed.
+Manifest inspection found exactly the three documented special-access permissions. The emulator acceptance record is in `docs/testing/0.1.0-emulator-acceptance.md`; it records the remaining gap: live MediaStore approval and cancellation were unavailable from the headless provider, while the Compose confirmation and remaining-path result flows passed.

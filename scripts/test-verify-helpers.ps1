@@ -12,6 +12,9 @@ if ($emulatorOnly.Count -ne 1 -or -not $emulatorOnly[0].IsEmulator) {
 }
 Assert-NoPhysicalAndroidDevices $emulatorOnly
 
+$noDevices = @(Get-SweepAdbDevices @('List of devices attached', ''))
+Assert-NoPhysicalAndroidDevices $noDevices
+
 $mixed = @(Get-SweepAdbDevices @(
     'List of devices attached',
     'emulator-5554 device product:sdk_gphone',

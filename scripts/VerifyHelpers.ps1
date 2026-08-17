@@ -18,7 +18,7 @@ function Get-SweepAdbDevices {
 }
 
 function Assert-NoPhysicalAndroidDevices {
-    param([Parameter(Mandatory)][object[]]$Devices)
+    param([Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Devices)
 
     $physical = @($Devices | Where-Object { -not $_.IsEmulator })
     if ($physical.Count -gt 0) {

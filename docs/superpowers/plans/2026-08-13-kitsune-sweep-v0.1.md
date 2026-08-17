@@ -544,4 +544,4 @@ git commit -m "test: verify Kitsune Sweep 0.1.0 APK"
 
 - [ ] **Step 9: Prepare the handoff**
 
-Copy the verified APK to `C:\Users\Owner\Downloads\Kitsune-Sweep-0.1.0-debug.apk` without opening Explorer or stealing focus. Do not install it on the S25 Ultra until the phone is connected and Moo explicitly asks for installation.
+Copy the verified APK to a user-selected output folder without opening Explorer or stealing focus. Do not install it on a physical phone until the device owner explicitly asks for installation.

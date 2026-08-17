@@ -45,3 +45,7 @@ The headless glass API 34 verification pass completed on 2026-08-14: 44 JVM test
 Manifest inspection found exactly the three documented special-access permissions. The emulator acceptance record is in `docs/testing/0.1.0-emulator-acceptance.md`; it records the remaining gap: live MediaStore approval and cancellation were unavailable from the headless provider, while the Compose confirmation and remaining-path result flows passed.
 
 The physical S25 pass checked 16,418 shared files, found 68 files above the 100 MB threshold, hashed 8 duplicate candidates, and reviewed 778 installed apps without an error. The S25 shared-storage provider passed the required `SecureDirectoryStream` assertion. Live deletion approval and cancellation remain intentionally untested; nothing was selected or deleted.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
